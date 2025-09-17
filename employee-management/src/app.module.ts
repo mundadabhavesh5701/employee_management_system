@@ -1,5 +1,5 @@
 import { Module, MiddlewareConsumer } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import configuration from './config/configuration';
 import { EmployeesModule } from './employees/employees.module';
@@ -10,11 +10,17 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
     TypeOrmModule.forRootAsync({
-      useFactory: () => ({
-        type: 'sqlite',
-        database: process.env.DB_PATH,
+      imports: [ConfigModule],        // Add this line
+      inject: [ConfigService],        // Add this line
+      useFactory: (configService: ConfigService) => ({
+        type: 'mysql',
+        host: configService.get<string>('database.host'),
+        port: configService.get<number>('database.port'),
+        username: configService.get<string>('database.username'),
+        password: configService.get<string>('database.password'),
+        database: configService.get<string>('database.name'),
         autoLoadEntities: true,
-        synchronize: true,
+        synchronize: true, // Only for development
       }),
     }),
     EmployeesModule,
